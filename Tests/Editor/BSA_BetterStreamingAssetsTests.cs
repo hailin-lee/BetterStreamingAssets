@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEditor.Android;
 using System;
+using System.Reflection;
 
 namespace Better.StreamingAssets
 {
@@ -237,11 +238,25 @@ namespace Better.StreamingAssets
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
         }
 
+
         [MenuItem("Assets/Better Streaming Assets/Convert AAB to APKS")]
         public static void ConvertAABToAPKS()
         {
+#if UNITY_ANDROID
+            var gradlePath = UnityEditor.Android.AndroidExternalToolsSettings.gradlePath;
+            var jdkRootPath = UnityEditor.Android.AndroidExternalToolsSettings.jdkRootPath;
+            
+#else
+            // AndroidExternalToolsSettings can't be safely accessed, as users might not have Android module installed
+            var type = Type.GetType("UnityEditor.Android.AndroidExternalToolsSettings, UnityEditor.Android.Extensions", true);
+            var gradlePathProperty = type.GetProperty("gradlePath", BindingFlags.Public | BindingFlags.Static) ?? throw new InvalidOperationException("gradlePath property not found");
+            var jdkRootPathProperty = type.GetProperty("jdkRootPath", BindingFlags.Public | BindingFlags.Static) ?? throw new InvalidOperationException("jdkRootPath property not found");
+            var gradlePath = (string)gradlePathProperty.GetValue(null);
+            var jdkRootPath = (string)jdkRootPathProperty.GetValue(null);
+#endif
+            
             // find bundle tool
-            var bundleTool = Directory.GetFiles(Path.Combine(AndroidExternalToolsSettings.gradlePath, ".."), "bundletool*.jar").Single();
+            var bundleTool = Directory.GetFiles(Path.Combine(gradlePath, ".."), "bundletool*.jar").Single();
             var paths = Directory.GetFiles(".", "*.aab");
 
             try
@@ -258,10 +273,10 @@ namespace Better.StreamingAssets
 
                     var processStartInfo = new System.Diagnostics.ProcessStartInfo()
                     {
-                        Environment = { { "JAVA_HOME", AndroidExternalToolsSettings.jdkRootPath } },
+                        Environment = { { "JAVA_HOME", jdkRootPath } },
                         CreateNoWindow = true,
                         UseShellExecute = false,
-                        FileName = Path.Combine(AndroidExternalToolsSettings.jdkRootPath, "bin", "java.exe"),
+                        FileName = Path.Combine(jdkRootPath, "bin", "java.exe"),
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         Arguments = $"-jar \"{bundleTool}\" build-apks --bundle {path} --output {outPath}"
@@ -308,7 +323,7 @@ namespace Better.StreamingAssets
 
             _apkMode = apkMode;
 
-            BetterStreamingAssets.CompressedStreamingAssetFound += (path) =>
+            BetterStreamingAssets.IsAndroidCompressedStreamingAsset += (path) =>
             {
                 return path.Any(x => !IsAscii(x));
             };
