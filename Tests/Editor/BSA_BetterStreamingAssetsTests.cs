@@ -48,6 +48,7 @@ namespace Better.StreamingAssets
             }
 
             // build
+            EditorUserBuildSettings.buildAppBundle = false;
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions()
             {
                 scenes = new[] { path },
