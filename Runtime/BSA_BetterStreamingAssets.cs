@@ -21,6 +21,7 @@ using BetterStreamingAssetsImp = BetterStreamingAssets.LooseFilesImpl;
 
 public static partial class BetterStreamingAssets
 {
+    public static bool Initialized => BetterStreamingAssetsImp.Initialized;
     internal struct ReadInfo
     {
         public string readPath;
@@ -42,6 +43,11 @@ public static partial class BetterStreamingAssets
     public static void Initialize(string dataPath, string streamingAssetsPath)
     {
         BetterStreamingAssetsImp.Initialize(dataPath, streamingAssetsPath);
+    }
+
+    public static void Reset()
+    {
+        BetterStreamingAssetsImp.Reset();
     }
     
     /// <summary>
@@ -191,6 +197,7 @@ public static partial class BetterStreamingAssets
 #if UNITY_EDITOR
     internal static class EditorImpl
     {
+        public static bool Initialized => ApkMode ? ApkImpl.Initialized : LooseFilesImpl.Initialized;
         public static bool ApkMode = false;
 
         public static string s_root
@@ -207,6 +214,18 @@ public static partial class BetterStreamingAssets
             else
             {
                 LooseFilesImpl.Initialize(dataPath, streamingAssetsPath);
+            }
+        }
+
+        internal static void Reset()
+        {
+            if ( ApkMode )
+            {
+                ApkImpl.Reset();
+            }
+            else
+            {
+                LooseFilesImpl.Reset();
             }
         }
 
@@ -255,13 +274,23 @@ public static partial class BetterStreamingAssets
 #if UNITY_EDITOR || !UNITY_ANDROID
     internal static class LooseFilesImpl
     {
+        public static bool Initialized { get; set; }
         public static string s_root;
         private static string[] s_emptyArray = new string[0];
 
         public static void Initialize(string dataPath, string streamingAssetsPath)
         {
             s_root = Path.GetFullPath(streamingAssetsPath).Replace('\\', '/').TrimEnd('/');
+            Initialized = true;
         }
+        
+        
+        public static void Reset()
+        {
+            s_root = null;
+            Initialized = false;
+        }
+
 
         public static string[] GetFiles(string path, string searchPattern, SearchOption searchOption)
         {
@@ -355,6 +384,7 @@ public static partial class BetterStreamingAssets
         private static string[] s_paths;
         private static PartInfo[] s_streamingAssets;
         public static string s_root;
+        public static bool Initialized { get; private set; }
 
         private struct PartInfo
         {
@@ -394,6 +424,15 @@ public static partial class BetterStreamingAssets
             
             s_paths = paths.ToArray();
             s_streamingAssets = parts.ToArray();
+            Initialized = true;
+        }
+
+        public static void Reset()
+        {
+            s_paths = null;
+            s_streamingAssets = null;
+            s_root = null;
+            Initialized = false;
         }
 
         public static bool TryGetInfo(string path, out ReadInfo info)
