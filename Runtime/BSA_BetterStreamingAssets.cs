@@ -579,6 +579,24 @@ public static partial class BetterStreamingAssets
         private static void GetStreamingAssetsFromPatch(string dataPath, List<string> paths, List<PartInfo> parts)
         {
             string assetsPath = dataPath + "/assets";
+            foreach (var file in Directory.GetFiles(assetsPath))
+            {
+                var relativePath = file.Substring(assetsPath.Length);
+                var entry = new PartInfo()
+                {
+                    crc32 = 0,
+                    offset = -1,
+                    size = new FileInfo(file).Length
+                };
+
+                var index = paths.BinarySearch(relativePath, StringComparer.OrdinalIgnoreCase);
+                if ( index >= 0 )
+                    throw new InvalidOperationException("Paths duplicate! " + file);
+
+                paths.Insert(~index, relativePath);
+                parts.Insert(~index, entry);
+            }
+            
             foreach (var dir in Directory.GetDirectories(assetsPath))
             {
                 if (dir.EndsWith("/bin"))
