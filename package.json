@@ -7,6 +7,9 @@
     "changelogUrl": "https://github.com/gwiazdorrr/BetterStreamingAssets",
     "licensesUrl": "https://github.com/gwiazdorrr/BetterStreamingAssets/blob/master/LICENSE",
     "description": "Access Streaming Assets directly in an uniform and thread-safe way, with tiny overhead.",
+    "dependencies": {
+      "com.cysharp.zstring": "2.6.0"
+    },
     "samples": [
       {
         "displayName": "Better Streaming Assets Samples",

@@ -6,10 +6,9 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using System.IO;
-using System.Text.RegularExpressions;
-using Better;
 using Better.StreamingAssets;
 using Better.StreamingAssets.ZipArchive;
+using Cysharp.Text;
 
 #if UNITY_EDITOR
 using BetterStreamingAssetsImp = BetterStreamingAssets.EditorImpl;
@@ -72,7 +71,7 @@ public static partial class BetterStreamingAssets
     public static void InitializeWithExternalApk(string apkPath)
     {
         BetterStreamingAssetsImp.ApkMode = true;
-        BetterStreamingAssetsImp.Initialize(apkPath, "jar:file://" + apkPath + "!/assets/");
+        BetterStreamingAssetsImp.Initialize(apkPath, ZString.Concat("jar:file://", apkPath, "!/assets/"));
     }
 
     public static void InitializeWithExternalDirectories(string dataPath, string streamingAssetsPath)
@@ -302,7 +301,7 @@ public static partial class BetterStreamingAssets
 
             Debug.Assert(s_root.Last() != '\\' && s_root.Last() != '/' && path.StartsWith("/"));
 
-            var files = Directory.GetFiles(s_root + path, searchPattern ?? "*", searchOption);
+            var files = Directory.GetFiles(ZString.Concat(s_root, path), searchPattern ?? "*", searchOption);
 
             for ( int i = 0; i < files.Length; ++i )
             {
@@ -334,7 +333,7 @@ public static partial class BetterStreamingAssets
 
             info = new ReadInfo();
 
-            var fullPath = s_root + path;
+            var fullPath = ZString.Concat(s_root, path);
             if ( !File.Exists(fullPath) )
                 return false;
 
@@ -345,7 +344,7 @@ public static partial class BetterStreamingAssets
         public static bool DirectoryExists(string path)
         {
             var normalized = PathUtil.NormalizeRelativePath(path);
-            return Directory.Exists(s_root + normalized);
+            return Directory.Exists(ZString.Concat(s_root, normalized));
         }
 
         public static byte[] ReadAllBytes(string path)
@@ -413,7 +412,7 @@ public static partial class BetterStreamingAssets
                 if (paths.Count == 0 && !Application.isEditor && Path.GetFileName(dataPath) != "base.apk")
                 {
                     // maybe split?
-                    var newDataPath = Path.GetDirectoryName(dataPath) + "/base.apk";
+                    var newDataPath = ZString.Concat(Path.GetDirectoryName(dataPath), "/base.apk");
                     if (File.Exists(newDataPath))
                     {
                         s_root = newDataPath;
@@ -450,7 +449,7 @@ public static partial class BetterStreamingAssets
             if (dataInfo.offset < 0)
             {
                 // this must be a patch release
-                info.readPath = s_root + "/assets" + path;
+                info.readPath = ZString.Concat(s_root, "/assets", path);
             }
             else
             {
@@ -617,7 +616,7 @@ public static partial class BetterStreamingAssets
 
         private static void GetStreamingAssetsFromPatch(string dataPath, List<string> paths, List<PartInfo> parts)
         {
-            string assetsPath = dataPath + "/assets";
+            var assetsPath = ZString.Concat(dataPath, "/assets");
             foreach (var file in Directory.GetFiles(assetsPath))
             {
                 var relativePath = file.Substring(assetsPath.Length);

@@ -1,16 +1,18 @@
 ﻿// Better Streaming Assets, Piotr Gwiazdowski <gwiazdorrr+github at gmail.com>, 2017
 
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using UnityEngine.Pool;
 
 namespace Better.StreamingAssets
 {
     public static partial class PathUtil
     {
+        static ObjectPool<StringBuilder> StringBuilderPool = new ObjectPool<StringBuilder>(
+            () => new StringBuilder(), 
+            actionOnGet: sb => sb.Clear()
+            );
         private enum NormalizeState
         {
             PrevSlash,
@@ -65,13 +67,13 @@ namespace Better.StreamingAssets
             if (string.IsNullOrEmpty(relative))
                 throw new System.ArgumentException("Empty or null", "relative");
 
-            StringBuilder output = new StringBuilder(relative.Length);
+            var output = StringBuilderPool.Get();
 
-            NormalizeState state = NormalizeState.PrevSlash;
+            var state = NormalizeState.PrevSlash;
             output.Append('/');
 
-            int startIndex = 0;
-            int lastIndexPlus1 = relative.Length;
+            var startIndex = 0;
+            var lastIndexPlus1 = relative.Length;
 
             if ( relative[0] == '"' && relative.Length > 2 && relative[relative.Length - 1] == '"')
             {
@@ -89,8 +91,11 @@ namespace Better.StreamingAssets
                     }
                     else if ( state == NormalizeState.PrevDoubleDot )
                     {
-                        if ( output.Length == 1 )
+                        if (output.Length == 1)
+                        {
+                            StringBuilderPool.Release(output);
                             throw new System.IO.IOException("Invalid path: double dot error (before " + i + ")");
+                        }
 
                         // on level up!
                         int j;
@@ -139,14 +144,19 @@ namespace Better.StreamingAssets
                     }
 
                     if (!IsValidCharacter(relative[i]))
+                    {
+                        StringBuilderPool.Release(output);
                         throw new System.IO.IOException("Invalid characters");
+                    }
 
                     output.Append(relative[i]);
                     state = NormalizeState.NothingSpecial;
                 }
             }
 
-            return output.ToString();
+            var normalized = output.ToString();
+            StringBuilderPool.Release(output);
+            return normalized;
         }
 
         public static bool IsValidCharacter(char c)
