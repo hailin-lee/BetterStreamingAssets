@@ -270,13 +270,19 @@ namespace Better.StreamingAssets
 
                     var outPath = $"{path}.apks";
                     FileUtil.DeleteFileOrDirectory(outPath);
+                    
+                    var javaExecutable = "java";
+                    if (Application.platform is RuntimePlatform.WindowsEditor)
+                    {
+                        javaExecutable = "java.exe";
+                    }
 
                     var processStartInfo = new System.Diagnostics.ProcessStartInfo()
                     {
                         Environment = { { "JAVA_HOME", jdkRootPath } },
                         CreateNoWindow = true,
                         UseShellExecute = false,
-                        FileName = Path.Combine(jdkRootPath, "bin", "java.exe"),
+                        FileName = Path.Combine(jdkRootPath, "bin", javaExecutable),
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         Arguments = $"-jar \"{bundleTool}\" build-apks --bundle {path} --output {outPath}"
